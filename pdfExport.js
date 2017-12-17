@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const logger = require('morgan');
 const compression = require('compression');
 const puppeteer = require('puppeteer');
+const PORT = process.env.PORT || 8000
 
 const app = express();
 logger('tiny');
@@ -94,7 +95,7 @@ app.post('/', function (req, res)
   })();
 });
 
-app.listen(8000, function () 
+app.listen(PORT, function () 
 {
-  console.log('pdf-export app listening on port 8000!')
+  console.log('pdf-export app listening on port ${ PORT }!')
 });
