@@ -1,0 +1,30 @@
+{
+  "name": "pdf-export",
+  "description": "PDF Export",
+  "keywords": [
+    "pdf"
+  ],
+  "website": "https://github.com/ashrafteleb/pdf.git",
+  "repository": "https://github.com/ashrafteleb/pdf.git",
+  "env": {
+    "ALLOW_HTTP": {
+      "description": "When set to \"true\", unsecure requests are allowed.",
+      "value": "false"
+    },
+    "API_TOKENS": {
+      "description": "Comma-separated list of accepted keys in x-api-key header.",
+      "required": false
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "https://github.com/jontewks/puppeteer-heroku-buildpack"
+    },
+    {
+      "url": "http://github.com/heroku/heroku-buildpack-nodejs.git"
+    },
+    {
+      "url": "https://github.com/debitoor/heroku-buildpack-converter-fonts"
+    }
+  ]
+}

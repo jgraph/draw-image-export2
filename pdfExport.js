@@ -25,7 +25,10 @@ app.post('/', function (req, res)
 	  req.body.border = 0;
   
   (async () => {
-	  const browser = await puppeteer.launch();
+	  const browser = await puppeteer.launch({
+		headless: true,
+		args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
+	  });
 	  const page = await browser.newPage();
 	  await page.goto('http://www.draw.io/export3.html', {waitUntil: 'networkidle2'});
 	  
