@@ -453,7 +453,7 @@ async function handleRequest(req, res)
 				else if (req.body.format == 'pdf')
 				{
 					var data = await page.pdf(pdfOptions);
-					throw new Error("Test");
+
 					res.header('Content-disposition', 'attachment; filename="' + decodeURIComponent(req.body.filename) + '"');
 					res.header('Content-type', 'application/pdf');
 
