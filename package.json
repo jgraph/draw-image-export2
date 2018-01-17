@@ -21,6 +21,7 @@
     "morgan": "^1.9.0",
     "node-fetch": "^1.7.3",
     "puppeteer": "^0.13.0",
+    "winston": "^3.0.0-rc1",
     "xmldom": "^0.1.27"
   }
 }
