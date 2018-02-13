@@ -1,1 +1,1 @@
-web: NODE_ENV=production node pdfExport.js
+web: NODE_ENV=production node export.js

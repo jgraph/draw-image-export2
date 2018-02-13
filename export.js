@@ -27,7 +27,6 @@ app.use(compression({
 //Enable request logging using morgan and Apache combined format
 app.use(morgan('combined'));
 
-
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
@@ -193,11 +192,6 @@ async function handleRequest(req, res)
 			html = decodeURIComponent(
 						zlib.inflateRawSync(
 								new Buffer(decodeURIComponent(html), 'base64')).toString());
-			
-			//TODO May be this is not needed with Chrome?
-			// Poor man's certificate handler for images
-			html = html.replace(/https\:\/\//g , "http://");
-			
 			
 			const browser = await puppeteer.launch({
 				headless: true,
@@ -368,7 +362,7 @@ async function handleRequest(req, res)
 					args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
 				});
 				const page = await browser.newPage();
-				await page.goto('http://www.draw.io/export3.html', {waitUntil: 'networkidle0'});
+				await page.goto('https://www.draw.io/export3.html', {waitUntil: 'networkidle0'});
 
 				const result = await page.evaluate((body) => {
 						return render({
@@ -386,21 +380,21 @@ async function handleRequest(req, res)
 
 				//default timeout is 30000 (30 sec)
 				await page.waitForSelector('#LoadingComplete');
-
+				
 				var bounds = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('bounds'));
-
 				var pdfOptions = {format: 'A4'};
 
 				if (bounds != null)
 				{
 					bounds = JSON.parse(bounds);
 
-					var w = Math.ceil(bounds.x + bounds.width);
-					var h = Math.ceil(bounds.y + bounds.height);
+					var w = Math.ceil(bounds.width);
+					var h = Math.ceil(bounds.height);
 
 					page.setViewport({width: w, height: h});
 
 					pdfOptions = {
+						printBackground: true,
 						width: w + 'px',
 						height: (h + 1) + 'px',
 						margin: {top: '0px', bottom: '0px', left: '0px', right: '0px'}
@@ -410,7 +404,7 @@ async function handleRequest(req, res)
 				// Cross-origin access should be allowed to now
 				res.header("Access-Control-Allow-Origin", "*");
 				
-				req.body.filename = req.body.filename || ("export." + req.body.format);
+				//req.body.filename = req.body.filename || ("export." + req.body.format);
 				
 				if (req.body.format == 'png' || req.body.format == 'jpeg')
 				{
@@ -438,9 +432,14 @@ async function handleRequest(req, res)
 							throw new Error("Invalid image");
 						}
 					}
+					
+					logger.info("Filename in request " + req.body.filename);
 
-
-					res.header('Content-disposition', 'attachment; filename="' + decodeURIComponent(req.body.filename) + '"');
+					if (req.body.filename != null)
+					{
+						res.header('Content-disposition', 'attachment; filename="' + decodeURIComponent(req.body.filename) + '"');
+					}
+					
 					res.header('Content-type', base64encoded? 'text/plain' : ('image/' + req.body.format));
 					res.header("Content-Length", data.length);
 
@@ -454,7 +453,11 @@ async function handleRequest(req, res)
 				{
 					var data = await page.pdf(pdfOptions);
 
-					res.header('Content-disposition', 'attachment; filename="' + decodeURIComponent(req.body.filename) + '"');
+					if (req.body.filename != null)
+					{
+						res.header('Content-disposition', 'attachment; filename="' + decodeURIComponent(req.body.filename) + '"');
+					}
+					
 					res.header('Content-type', 'application/pdf');
 
 					res.end(data);
@@ -535,5 +538,5 @@ async function handleRequest(req, res)
 
 app.listen(PORT, function () 
 {
-  console.log(`pdf-export app listening on port ${PORT}!`)
+  console.log(`draw.io export server listening on port ${PORT}...`)
 });

@@ -1,6 +1,6 @@
 {
-  "name": "pdf-export",
-  "description": "PDF Export",
+  "name": "drawio-export",
+  "description": "PDF and image export server for draw.io",
   "keywords": [
     "pdf"
   ],

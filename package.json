@@ -1,11 +1,11 @@
 {
-  "name": "pdf-export",
+  "name": "drawio-export",
   "version": "1.0.0",
   "description": "",
-  "main": "pdfExport.js",
+  "main": "export.js",
   "scripts": {
-    "start": "node pdfExport.js",
-    "devstart": "nodemon pdfExport.js",
+    "start": "node export.js",
+    "devstart": "nodemon export.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
