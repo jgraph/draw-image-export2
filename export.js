@@ -437,7 +437,8 @@ async function handleRequest(req, res)
 
 					if (req.body.filename != null)
 					{
-						res.header('Content-disposition', 'attachment; filename="' + decodeURIComponent(req.body.filename) + '"');
+						res.header('Content-disposition', 'attachment; filename="' + req.body.filename +
+								'"; filename*=UTF-8\'\'' + req.body.filename);
 					}
 					
 					res.header('Content-type', base64encoded? 'text/plain' : ('image/' + req.body.format));
@@ -455,7 +456,8 @@ async function handleRequest(req, res)
 
 					if (req.body.filename != null)
 					{
-						res.header('Content-disposition', 'attachment; filename="' + decodeURIComponent(req.body.filename) + '"');
+						res.header('Content-disposition', 'attachment; filename="' + req.body.filename +
+								'"; filename*=UTF-8\'\'' + req.body.filename);
 					}
 					
 					res.header('Content-type', 'application/pdf');
