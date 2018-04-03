@@ -443,6 +443,11 @@ async function handleRequest(req, res)
 					
 					res.header('Content-type', base64encoded? 'text/plain' : ('image/' + req.body.format));
 					res.header("Content-Length", data.length);
+					
+					// These two parameters are for Google Docs or other recipients to transfer the real image width x height information
+					// (in case this information is inaccessible or lost)
+					res.header("content-ex-width", w);
+					res.header("content-ex-height", h)
 
 					res.end(data);
 
