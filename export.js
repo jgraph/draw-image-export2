@@ -405,6 +405,7 @@ async function handleRequest(req, res)
 				res.header("Access-Control-Allow-Origin", "*");
 				
 				//req.body.filename = req.body.filename || ("export." + req.body.format);
+				var base64encoded = req.body.base64 == "1";
 				
 				if (req.body.format == 'png' || req.body.format == 'jpeg')
 				{
@@ -412,8 +413,6 @@ async function handleRequest(req, res)
 						type: req.body.format,
 						fullPage: true
 					});
-
-					var base64encoded = req.body.base64 == "1";
 
 					if (req.body.embedXml == "1" && req.body.format == 'png')
 					{
@@ -465,8 +464,13 @@ async function handleRequest(req, res)
 								'"; filename*=UTF-8\'\'' + req.body.filename);
 					}
 					
-					res.header('Content-type', 'application/pdf');
-
+					if (base64encoded)
+					{
+						data = data.toString('base64');
+					}
+					
+					res.header('Content-type', base64encoded? 'text/plain' : 'application/pdf');
+					res.header("Content-Length", data.length);
 					res.end(data);
 
 					var dt = Date.now() - t0;
