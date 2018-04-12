@@ -197,6 +197,13 @@ async function handleRequest(req, res)
 				headless: true,
 				args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
 			});
+			
+			// Workaround for timeouts/zombies is to kill after 30 secs
+			setTimeout(function()
+			{
+				browser.close();
+			}, 30000);
+			
 			const page = await browser.newPage();
 			// https://github.com/GoogleChrome/puppeteer/issues/728
 			await page.goto(`data:text/html,${html}`, {waitUntil: 'networkidle0'});
@@ -219,6 +226,11 @@ async function handleRequest(req, res)
 		}
 		catch (e)
 		{
+			if (browser != null)
+			{
+				browser.close();
+			}
+			
 			logger.info("Inflate failed for HTML input: " + html);
 			throw e;
 		}
@@ -361,6 +373,13 @@ async function handleRequest(req, res)
 					headless: true,
 					args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
 				});
+
+				// Workaround for timeouts/zombies is to kill after 30 secs
+				setTimeout(function()
+				{
+					browser.close();
+				}, 30000);
+				
 				const page = await browser.newPage();
 				await page.goto('https://www.draw.io/export3.html', {waitUntil: 'networkidle0'});
 
@@ -487,6 +506,11 @@ async function handleRequest(req, res)
 			}
 			catch (e)
 			{
+				if (browser != null)
+				{
+					browser.close();
+				}
+				
 				res.status(500).end("Error!");
 				
 				var ip = (req.headers['x-forwarded-for'] ||
