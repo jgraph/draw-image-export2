@@ -426,10 +426,10 @@ async function handleRequest(req, res)
 				//req.body.filename = req.body.filename || ("export." + req.body.format);
 				var base64encoded = req.body.base64 == "1";
 				
-				if (req.body.format == 'png' || req.body.format == 'jpeg')
+				if (req.body.format == 'png' || req.body.format == 'jpg')
 				{
 					var data = await page.screenshot({
-						type: req.body.format,
+						type: req.body.format == 'jpg' ? 'jpeg' : req.body.format,
 						fullPage: true
 					});
 
