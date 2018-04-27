@@ -407,15 +407,19 @@ async function handleRequest(req, res)
 				{
 					bounds = JSON.parse(bounds);
 
-					var w = Math.ceil(bounds.width);
-					var h = Math.ceil(bounds.height);
+					//Chrome generates Pdf files larger than requested pixels size and requires scaling
+					var fixingScale = 0.959;
+
+					var w = Math.ceil(bounds.width * fixingScale);
+					var h = Math.ceil(bounds.height * fixingScale);
 
 					page.setViewport({width: w, height: h});
-
+					
+					
 					pdfOptions = {
 						printBackground: true,
 						width: w + 'px',
-						height: (h + 1) + 'px',
+						height: (h + 1) + 'px', //the extra pixel to prevent adding an extra empty page
 						margin: {top: '0px', bottom: '0px', left: '0px', right: '0px'}
 					}
 				}	  
@@ -426,7 +430,7 @@ async function handleRequest(req, res)
 				//req.body.filename = req.body.filename || ("export." + req.body.format);
 				var base64encoded = req.body.base64 == "1";
 				
-				if (req.body.format == 'png' || req.body.format == 'jpg')
+				if (req.body.format == 'png' || req.body.format == 'jpg' || req.body.format == 'jpeg')
 				{
 					var data = await page.screenshot({
 						type: req.body.format == 'jpg' ? 'jpeg' : req.body.format,
@@ -465,7 +469,7 @@ async function handleRequest(req, res)
 					// These two parameters are for Google Docs or other recipients to transfer the real image width x height information
 					// (in case this information is inaccessible or lost)
 					res.header("content-ex-width", w);
-					res.header("content-ex-height", h)
+					res.header("content-ex-height", h);
 
 					res.end(data);
 
