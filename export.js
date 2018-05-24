@@ -414,8 +414,7 @@ async function handleRequest(req, res)
 					var h = Math.ceil(bounds.height * fixingScale);
 
 					page.setViewport({width: w, height: h});
-					
-					
+
 					pdfOptions = {
 						printBackground: true,
 						width: w + 'px',
@@ -433,6 +432,7 @@ async function handleRequest(req, res)
 				if (req.body.format == 'png' || req.body.format == 'jpg' || req.body.format == 'jpeg')
 				{
 					var data = await page.screenshot({
+						omitBackground: req.body.format == 'png' && (req.body.bg == null || req.body.bg == 'none'),	
 						type: req.body.format == 'jpg' ? 'jpeg' : req.body.format,
 						fullPage: true
 					});
@@ -454,11 +454,11 @@ async function handleRequest(req, res)
 							throw new Error("Invalid image");
 						}
 					}
-					
-					logger.info("Filename in request " + req.body.filename);
 
 					if (req.body.filename != null)
 					{
+						logger.info("Filename in request " + req.body.filename);
+
 						res.header('Content-disposition', 'attachment; filename="' + req.body.filename +
 								'"; filename*=UTF-8\'\'' + req.body.filename);
 					}
