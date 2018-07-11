@@ -186,6 +186,7 @@ async function handleRequest(req, res)
 
 		var hp = req.body.h;
 		var h = (hp == null) ? 0 : parseInt(hp);
+		var browser = null;
 
 		try
 		{
@@ -193,7 +194,7 @@ async function handleRequest(req, res)
 						zlib.inflateRawSync(
 								new Buffer(decodeURIComponent(html), 'base64')).toString());
 			
-			const browser = await puppeteer.launch({
+			browser = await puppeteer.launch({
 				headless: true,
 				args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
 			});
@@ -359,6 +360,8 @@ async function handleRequest(req, res)
 		// Checks parameters
 		if (req.body.format && xml && req.body.w * req.body.h <= MAX_AREA)
 		{
+			var browser = null;
+			
 			try
 			{
 				var reqStr = ((xml != null) ? "xml=" + xml.length : "")
@@ -369,7 +372,7 @@ async function handleRequest(req, res)
 
 				var t0 = Date.now();
 				
-				const browser = await puppeteer.launch({
+				browser = await puppeteer.launch({
 					headless: true,
 					args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
 				});
@@ -381,7 +384,7 @@ async function handleRequest(req, res)
 				}, 30000);
 				
 				const page = await browser.newPage();
-				await page.goto('https://www.draw.io/export3.html', {waitUntil: 'networkidle0'});
+				await page.goto('https://test.draw.io/export3.html', {waitUntil: 'networkidle0'});
 
 				const result = await page.evaluate((body) => {
 						return render({
@@ -411,7 +414,10 @@ async function handleRequest(req, res)
 					var fixingScale = 0.959;
 
 					var w = Math.ceil(bounds.width * fixingScale);
-					var h = Math.ceil(bounds.height * fixingScale);
+					
+					// +0.1 fixes cases where adding 1px below is not enough
+					// Increase this if more cropped PDFs have extra empty pages
+					var h = Math.ceil(bounds.height * fixingScale + 0.1);
 
 					page.setViewport({width: w, height: h});
 
