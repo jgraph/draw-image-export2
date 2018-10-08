@@ -59,3 +59,4 @@ typings/
 
 # Eclipse project file
 .project
+package-lock.json
