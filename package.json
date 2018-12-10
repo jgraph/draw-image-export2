@@ -11,17 +11,17 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "nodemon": "^1.12.7"
+    "nodemon": "^1.18.7"
   },
   "dependencies": {
-    "body-parser": "^1.18.2",
-    "compression": "^1.7.1",
-    "crc": "^3.5.0",
-    "express": "^4.16.2",
+    "body-parser": "^1.18.3",
+    "compression": "^1.7.3",
+    "crc": "^3.8.0",
+    "express": "^4.16.4",
     "morgan": "^1.9.1",
-    "node-fetch": "^1.7.3",
-    "puppeteer": "^0.13.0",
-    "winston": "^3.0.0-rc1",
+    "node-fetch": "^2.3.0",
+    "puppeteer": "^1.11.0",
+    "winston": "^3.1.0",
     "xmldom": "^0.1.27"
   }
 }
