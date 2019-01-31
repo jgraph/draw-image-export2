@@ -449,6 +449,11 @@ async function handleRequest(req, res)
 						data = writePngWithText(data, "mxGraphModel", xml, true,
 								base64encoded);
 					}
+					else if (req.body.embedData == "1" && req.body.format == 'png')
+					{
+						data = writePngWithText(data, req.body.dataHeader, req.body.data, true,
+								base64encoded);
+					}
 					else
 					{
 						if (base64encoded)
