@@ -396,6 +396,7 @@ async function handleRequest(req, res)
 							bg: body.bg,
 							"from": body["from"],
 							to: body.to,
+							pageId: body.pageId,
 							allPages: body.allPages,
 							scale: body.scale || 1
 						});
