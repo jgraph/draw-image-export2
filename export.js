@@ -398,7 +398,8 @@ async function handleRequest(req, res)
 							to: body.to,
 							pageId: body.pageId,
 							allPages: body.allPages,
-							scale: body.scale || 1
+							scale: body.scale || 1,
+							extras: body.extras
 						});
 					}, req.body);
 
