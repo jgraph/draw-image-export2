@@ -407,6 +407,7 @@ async function handleRequest(req, res)
 				await page.waitForSelector('#LoadingComplete');
 				
 				var bounds = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('bounds'));
+				var pageId = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('page-id'));
 				var pdfOptions = {format: 'A4'};
 
 				if (bounds != null)
@@ -484,6 +485,11 @@ async function handleRequest(req, res)
 					// (in case this information is inaccessible or lost)
 					res.header("content-ex-width", w);
 					res.header("content-ex-height", h);
+					
+					if (pageId != null && pageId != 'undefined')
+					{
+						res.header("content-page-id", pageId);
+					}
 
 					res.end(data);
 
@@ -508,6 +514,12 @@ async function handleRequest(req, res)
 					
 					res.header('Content-type', base64encoded? 'text/plain' : 'application/pdf');
 					res.header("Content-Length", data.length);
+					
+					if (pageId != null && pageId != 'undefined')
+					{
+						res.header("content-page-id", pageId);
+					}
+
 					res.end(data);
 
 					var dt = Date.now() - t0;
@@ -591,5 +603,5 @@ async function handleRequest(req, res)
 
 app.listen(PORT, function () 
 {
-  console.log(`draw.io export server listening on port ${PORT}...`)
+  console.log(`draw.io export server listening on port ${PORT}...`);
 });
