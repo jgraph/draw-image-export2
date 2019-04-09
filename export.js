@@ -408,6 +408,7 @@ async function handleRequest(req, res)
 				
 				var bounds = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('bounds'));
 				var pageId = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('page-id'));
+				var scale  = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('scale'));
 				var pdfOptions = {format: 'A4'};
 
 				if (bounds != null)
@@ -489,6 +490,11 @@ async function handleRequest(req, res)
 					if (pageId != null && pageId != 'undefined')
 					{
 						res.header("content-page-id", pageId);
+					}
+
+					if (scale != null && scale != 'undefined')
+					{
+						res.header("content-scale", scale);
 					}
 
 					res.end(data);
