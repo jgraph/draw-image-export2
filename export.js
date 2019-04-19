@@ -190,9 +190,19 @@ async function handleRequest(req, res)
 
 		try
 		{
-			html = decodeURIComponent(
-						zlib.inflateRawSync(
-								new Buffer(decodeURIComponent(html), 'base64')).toString());
+			//Handles buffer constructor deprecation
+			if (Buffer.from && Buffer.from !== Uint8Array.from)
+			{
+				html = decodeURIComponent(
+					zlib.inflateRawSync(
+							Buffer.from(decodeURIComponent(html), 'base64')).toString());
+			}
+			else
+			{
+				html = decodeURIComponent(
+					zlib.inflateRawSync(
+							new Buffer(decodeURIComponent(html), 'base64')).toString());
+			}
 			
 			browser = await puppeteer.launch({
 				headless: true,
@@ -206,9 +216,7 @@ async function handleRequest(req, res)
 			}, 30000);
 			
 			const page = await browser.newPage();
-			// https://github.com/GoogleChrome/puppeteer/issues/728
-			await page.goto(`data:text/html,${html}`, {waitUntil: 'networkidle0'});
-			//await page.setContent(html);
+			await page.setContent(html, {waitUntil: "networkidle0"});
 
 			page.setViewport({width: w, height: h});
 
