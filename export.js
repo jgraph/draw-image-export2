@@ -206,7 +206,7 @@ async function handleRequest(req, res)
 			
 			browser = await puppeteer.launch({
 				headless: true,
-				args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
+				args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 			});
 			
 			// Workaround for timeouts/zombies is to kill after 30 secs
@@ -382,7 +382,7 @@ async function handleRequest(req, res)
 				
 				browser = await puppeteer.launch({
 					headless: true,
-					args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox']
+					args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 				});
 
 				// Workaround for timeouts/zombies is to kill after 30 secs
