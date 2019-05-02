@@ -1,3 +1,4 @@
+const cluster = require('cluster');
 const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
@@ -7,7 +8,30 @@ const puppeteer = require('puppeteer');
 const zlib = require('zlib');
 const fetch = require('node-fetch');
 const crc = require('crc');
+const genericPool = require("generic-pool");
 
+if (cluster.isMaster) 
+{
+    // Count the machine's CPUs
+    var cpuCount = require('os').cpus().length;
+
+    // Create a worker for each CPU
+    for (var i = 0; i < cpuCount; i += 1) 
+	{
+        cluster.fork();
+    }
+	
+	// Listen for dying workers
+	cluster.on('exit', function (worker) 
+	{
+		// Replace the dead worker,
+		// we're not sentimental
+		console.log('Worker %d died :(', worker.id);
+		cluster.fork();
+	});
+}
+else
+{
 const MAX_AREA = 10000 * 10000;
 const PNG_CHUNK_IDAT = 1229209940;
 var DOMParser = require('xmldom').DOMParser;
@@ -167,6 +191,66 @@ function writePngWithText(origBuff, key, text, compressed, base64encoded)
 app.post('/', handleRequest);
 app.get('/', handleRequest);
 
+	//We will have one browser instance in each entry in the pool. Each request will create a new page
+	//puppeteer serialize all screen shots issued to the same browser. So, multiple pages per browser won't help
+	const poolFactory = {
+	  create: async function() 
+	  {
+		var browser = await puppeteer.launch({
+			headless: true,
+			args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+
+		});
+		// Listen for crashing browser
+		browser.on('disconnected', function () 
+		{
+			browser.isDisconnected = true;
+		});
+		
+		return browser;
+	  },
+	  destroy: async function(browser) 
+	  {
+		 await browser.close();
+	  },
+	  validate: async function(browser) 
+	  {
+		try 
+		{
+			if (browser.isDisconnected)
+			{
+				return false;
+			}
+			
+			var pages = await browser.pages();
+			
+			//Chrome always has 'chrome://welcome-win10/?text=faster' open [one page is always open]
+			if (pages.length > 1)
+			{
+				//destroy will call await browser.close();
+				return false;
+			}
+		}
+		catch (e)
+		{
+			//destroy will call await browser.close();
+			return false;
+		}
+		return true;
+	  }
+	};
+	
+	const browsersPool = genericPool.createPool(poolFactory, {
+		max: 2, // maximum size of the pool
+		min: 1, // minimum size of the pool
+		acquireTimeoutMillis: 30000, //maximum waiting time
+		testOnBorrow: true, //validate the browser before returning it
+		autostart: true //create the browsers on start
+		//TODO maybe we can evict browsers periodically to keep them fresh?
+		//evictionRunIntervalMillis: 
+		//idleTimeoutMillis:
+	});
+
 async function handleRequest(req, res) 
 {
   try
@@ -186,8 +270,8 @@ async function handleRequest(req, res)
 
 		var hp = req.body.h;
 		var h = (hp == null) ? 0 : parseInt(hp);
-		var browser = null;
 
+		var page = null, browser = null, errorOccurred = false;
 		try
 		{
 			//Handles buffer constructor deprecation
@@ -204,18 +288,9 @@ async function handleRequest(req, res)
 							new Buffer(decodeURIComponent(html), 'base64')).toString());
 			}
 			
-			browser = await puppeteer.launch({
-				headless: true,
-				args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-			});
+			browser = await browsersPool.acquire();
 			
-			// Workaround for timeouts/zombies is to kill after 30 secs
-			setTimeout(function()
-			{
-				browser.close();
-			}, 30000);
-			
-			const page = await browser.newPage();
+			page = await browser.newPage();
 			await page.setContent(html, {waitUntil: "networkidle0"});
 
 			page.setViewport({width: w, height: h});
@@ -230,18 +305,27 @@ async function handleRequest(req, res)
 			res.header('Content-type', 'image/png');
 			  
 			res.end(data);
-
-			browser.close();
 		}
 		catch (e)
 		{
-			if (browser != null)
-			{
-				browser.close();
-			}
-			
+			errorOccurred = true;
 			logger.info("Inflate failed for HTML input: " + html);
 			throw e;
+		}
+		finally
+		{
+			if (page != null)
+			{
+				await page.close();
+			}
+			
+			if (browser != null) 
+			{
+				if (errorOccurred)
+					browsersPool.destroy(browser)
+				else
+					browsersPool.release(browser);
+			}
 		}
 	  }
 	  else
@@ -259,8 +343,17 @@ async function handleRequest(req, res)
 		{
 			try
 			{
-				xml = zlib.inflateRawSync(
-						new Buffer(decodeURIComponent(req.body.xmldata), 'base64')).toString();
+				//Handles buffer constructor deprecation
+				if (Buffer.from && Buffer.from !== Uint8Array.from)
+				{
+					xml = zlib.inflateRawSync(
+							Buffer.from(decodeURIComponent(req.body.xmldata), 'base64')).toString();
+				}
+				else
+				{
+					xml = zlib.inflateRawSync(
+							new Buffer(decodeURIComponent(req.body.xmldata), 'base64')).toString();
+				}
 			}
 			catch (e)
 			{
@@ -314,7 +407,15 @@ async function handleRequest(req, res)
 
 								if (tmp != null)
 								{
-									tmp = zlib.inflateRawSync(new Buffer(tmp, 'base64')).toString();
+									//Handles buffer constructor deprecation
+									if (Buffer.from && Buffer.from !== Uint8Array.from)
+									{
+										tmp = zlib.inflateRawSync(Buffer.from(tmp, 'base64')).toString();
+									}
+									else
+									{
+										tmp = zlib.inflateRawSync(new Buffer(tmp, 'base64')).toString();
+									}
 									
 									if (tmp != null && tmp.length > 0)
 									{
@@ -368,8 +469,7 @@ async function handleRequest(req, res)
 		// Checks parameters
 		if (req.body.format && xml && req.body.w * req.body.h <= MAX_AREA)
 		{
-			var browser = null;
-			
+			var page = null, browser = null, errorOccurred = false;
 			try
 			{
 				var reqStr = ((xml != null) ? "xml=" + xml.length : "")
@@ -380,18 +480,10 @@ async function handleRequest(req, res)
 
 				var t0 = Date.now();
 				
-				browser = await puppeteer.launch({
-					headless: true,
-					args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-				});
+				browser = await browsersPool.acquire();
 
-				// Workaround for timeouts/zombies is to kill after 30 secs
-				setTimeout(function()
-				{
-					browser.close();
-				}, 30000);
-				
-				const page = await browser.newPage();
+				page = await browser.newPage();
+
 				await page.goto('https://www.draw.io/export3.html', {waitUntil: 'networkidle0'});
 
 				const result = await page.evaluate((body) => {
@@ -546,14 +638,10 @@ async function handleRequest(req, res)
 					res.status(400).end("Unsupported Format!");
 					logger.warn("Unsupported Format: " + req.body.format);
 				}
-				await browser.close();
 			}
 			catch (e)
 			{
-				if (browser != null)
-				{
-					browser.close();
-				}
+				errorOccurred = true;
 				
 				res.status(500).end("Error!");
 				
@@ -598,6 +686,20 @@ async function handleRequest(req, res)
 						+ " req=" + reqStr, {stack: e.stack});
 				
 			}
+			finally
+			{
+				if (page != null)
+				{
+					await page.close();
+				}
+				if (browser != null) 
+				{
+					if (errorOccurred)
+						browsersPool.destroy(browser)
+					else
+						browsersPool.release(browser);
+				}
+			}
 		}
 		else
 		{
@@ -617,5 +719,6 @@ async function handleRequest(req, res)
 
 app.listen(PORT, function () 
 {
-  console.log(`draw.io export server listening on port ${PORT}...`);
+	console.log(`draw.io export server worker ${cluster.worker.id} listening on port ${PORT}...`)
 });
+}
