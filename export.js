@@ -240,10 +240,14 @@ else
 		}
 	};
 	
+	//pool max and timeout from process args
+	var poolMax = parseInt(process.argv[2]) || 10;
+	var poolTimeout = parseInt(process.argv[3]) || 30000;
+
 	const browsersPool = genericPool.createPool(poolFactory, {
-		max: 2, // maximum size of the pool
+		max: poolMax, // maximum size of the pool
 		min: 1, // minimum size of the pool
-		acquireTimeoutMillis: 30000, //maximum waiting time
+		acquireTimeoutMillis: poolTimeout, //maximum waiting time
 		testOnBorrow: true, //validate the browser before returning it
 		autostart: true //create the browsers on start
 		//TODO maybe we can evict browsers periodically to keep them fresh?
