@@ -8,7 +8,7 @@ const zlib = require('zlib');
 const fetch = require('node-fetch');
 const crc = require('crc');
 
-const MAX_AREA = 10000 * 10000;
+const MAX_AREA = 15000 * 15000;
 const PNG_CHUNK_IDAT = 1229209940;
 var DOMParser = require('xmldom').DOMParser;
 
