@@ -423,14 +423,17 @@ async function handleRequest(req, res)
 				{
 					bounds = JSON.parse(bounds);
 
-					//Chrome generates Pdf files larger than requested pixels size and requires scaling
-					var fixingScale = 0.959;
+					var isPdf = req.body.format == 'pdf';
 
-					var w = Math.ceil(bounds.width * fixingScale);
+					//Chrome generates Pdf files larger than requested pixels size and requires scaling
+					//For images, the fixing scale shows scrollbars
+					var fixingScale = isPdf? 0.959 : 1;
+
+					var w = Math.ceil(Math.ceil(bounds.width + bounds.x) * fixingScale);
 					
 					// +0.1 fixes cases where adding 1px below is not enough
 					// Increase this if more cropped PDFs have extra empty pages
-					var h = Math.ceil(bounds.height * fixingScale + 0.1);
+					var h = Math.ceil(Math.ceil(bounds.height + bounds.y) * fixingScale + (isPdf? 0.1 : 0));
 
 					page.setViewport({width: w, height: h});
 
