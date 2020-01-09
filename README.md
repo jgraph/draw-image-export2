@@ -5,6 +5,13 @@ The 2018 server-side PNG/PDF export implementation using Node, Puppeteer and Chr
 * npm install
 * npm start
 
+## Updating internal draw.io versions
+
+* su chrome
+* cd ~/draw-image-export2
+* git pull
+* forever restartall
+
 ## Usage
 This service accepts the following (url encoded) parameters provided via a HTTP (GET or POST) request. All parameters are optional except where emboldened.
 
