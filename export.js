@@ -184,6 +184,58 @@ function writePngWithText(origBuff, key, text, compressed, base64encoded)
 	}
 }
 
+function writePdfWithSubject(origBuff, text)
+{
+	var inOffset = 0;
+	var outOffset = 0;
+	text = text.replace(/\(/g, "\(").replace(/\)/g, "\)");
+	var data = '89 0 obj\n(' + text + ')\nendobj\n1 0 obj\n<< /Subject 89 0 R >>\n';
+	var dataLen = data.length;
+	var outBuff = Buffer.allocUnsafe(origBuff.length + dataLen);
+	var check = 'R>>\nendobj\nxref\n';
+	var checked = 0;
+	var done = false;
+	
+	try
+	{
+		while (inOffset < origBuff.length)
+		{
+			var b = origBuff.readInt8(inOffset);
+			inOffset += 1;
+
+			outBuff.writeInt8(b, outOffset);
+			outOffset += 1;
+
+			if (!done)
+			{
+				if (b == check.charCodeAt(checked))
+				{
+					checked++;
+				}
+				else
+				{
+					checked = 0;
+				}
+				
+				if (checked >= check.length)
+				{
+					outBuff.write(data, outOffset);
+					outOffset += data.length;
+				
+					done = true;
+				}
+			}
+		}
+	}
+	catch (e)
+	{
+		logger.error(e.message, {stack: e.stack});
+		throw e;
+	}
+	
+	return outBuff;
+}
+
 app.post('/', handleRequest);
 app.get('/', handleRequest);
 
@@ -547,6 +599,11 @@ async function handleRequest(req, res)
 					{
 						res.header('Content-disposition', 'attachment; filename="' + req.body.filename +
 								'"; filename*=UTF-8\'\'' + req.body.filename);
+					}
+					
+					if (req.body.embedXml == "1")
+					{
+						data = writePdfWithSubject(data, xml);
 					}
 					
 					if (base64encoded)
