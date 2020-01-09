@@ -189,10 +189,10 @@ function writePdfWithSubject(origBuff, text)
 	var inOffset = 0;
 	var outOffset = 0;
 	text = text.replace(/\(/g, "\(").replace(/\)/g, "\)");
-	var data = '89 0 obj\n(' + text + ')\nendobj\n1 0 obj\n<< /Subject 89 0 R >>\n';
+	var data = '89 0 obj\n(' + encodeURIComponent(text) + ')\nendobj\n1 0 obj\n<< /Subject 89 0 R >>\n';
 	var dataLen = data.length;
 	var outBuff = Buffer.allocUnsafe(origBuff.length + dataLen);
-	var check = 'R>>\nendobj\nxref\n';
+	var check = '\nendobj\nxref\n';
 	var checked = 0;
 	var done = false;
 	
