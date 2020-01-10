@@ -184,17 +184,32 @@ function writePngWithText(origBuff, key, text, compressed, base64encoded)
 	}
 }
 
-function writePdfWithSubject(origBuff, text)
+function padNumber(n, width, z)
+{
+	z = z || '0';
+	n = n + '';
+	
+	return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+}
+
+// Uses Subject as it is not used and replacing Producer is not shortened in macOS Preview Inspector
+function writePdfWithText(origBuff, text)
 {
 	var inOffset = 0;
 	var outOffset = 0;
-	text = text.replace(/\(/g, "\(").replace(/\)/g, "\)");
-	var data = '89 0 obj\n(' + encodeURIComponent(text) + ')\nendobj\n1 0 obj\n<< /Subject 89 0 R >>\n';
-	var dataLen = data.length;
-	var outBuff = Buffer.allocUnsafe(origBuff.length + dataLen);
-	var check = '\nendobj\nxref\n';
+	var data = '\n/Subject (' + encodeURIComponent(text).replace(/\(/g, "\\(").replace(/\)/g, "\\)") + ')';
+	var outBuff = Buffer.allocUnsafe(origBuff.length);
+	var xrefCheck = '\nxref\n';
+	var xrefChecked = 0;
+	var xref = '';
 	var checked = 0;
+	var pStart = 0;
+	var xStart = 0;
+	var check = '\n/Producer (';
+	var reading = false;
 	var done = false;
+	var position = 0;
+	var offset = 0;
 	
 	try
 	{
@@ -203,28 +218,125 @@ function writePdfWithSubject(origBuff, text)
 			var b = origBuff.readInt8(inOffset);
 			inOffset += 1;
 
-			outBuff.writeInt8(b, outOffset);
-			outOffset += 1;
-
-			if (!done)
+			if (!done && !reading)
 			{
-				if (b == check.charCodeAt(checked))
+				if (checked < check.length && b == check.charCodeAt(checked))
 				{
 					checked++;
+					reading = checked == check.length;
+					
+					if (reading)
+					{
+						pStart = inOffset;
+					}
 				}
 				else
 				{
 					checked = 0;
 				}
-				
-				if (checked >= check.length)
+			}
+			
+			if (!done && reading)
+			{
+				// Waits for new line in Producer and adds to output
+				if (b == 10)
 				{
+					offset = data.length;
+					
+					var newBuff = Buffer.allocUnsafe(origBuff.length + offset);
+					outBuff.copy(newBuff, 0);
+					outBuff = newBuff;
 					outBuff.write(data, outOffset);
+					
 					outOffset += data.length;
-				
+					reading = false;
+					checked = 0;
 					done = true;
 				}
 			}
+			else if (done && offset > 0)
+			{
+				if (reading)
+				{
+					xref += String.fromCharCode(b);
+				}
+				else if (!reading && checked < xrefCheck.length && b == xrefCheck.charCodeAt(checked))
+				{
+					checked++;
+					reading = checked == xrefCheck.length;
+					
+					if (reading)
+					{
+						xStart = inOffset - xrefCheck.length + offset;
+					}
+				}
+				else
+				{
+					checked = 0;
+				}
+			}
+			
+			if (!reading || !done)
+			{
+				outBuff.writeInt8(b, outOffset);
+				outOffset += 1;
+			}
+		}
+		
+		// Updates offsets in xref and startxref
+		// output does not contain multiple xrefs at this point
+		if (xref != '')
+		{
+			var lines = xref.split('\n');
+			
+			if (lines.length > 0)
+			{
+				var xlen = xref.length + xrefCheck.length;
+				lines[lines.length - 2] = String(xStart + 1);
+				
+				var output = [lines[0]];
+				var active = true;
+				
+				for (var i = 1; i < lines.length; i++)
+				{
+					if (lines[i] == 'trailer')
+					{
+						active = false;
+					}
+					else if (active)
+					{
+						var entries = lines[i].split(' ');
+						
+						if (entries.length > 0 && entries[2] == 'n')
+						{
+							var pos = parseInt(entries[0]);
+							
+							if (pos > pStart)
+							{
+								lines[i] = padNumber(pos + offset,
+									entries[0].length) + ' ' +
+									entries.slice(1).join(' ');
+							}
+						}
+					}
+					
+					output.push(lines[i]);
+				}
+				
+				xref = xrefCheck + output.join('\n');
+				
+				// Reallocate buffer if xref length has changed
+				var dl = xref.length - xlen;
+				
+				if (dl != 0)
+				{
+					var newBuff = Buffer.allocUnsafe(origBuff.length + dl + offset);
+					outBuff.copy(newBuff, 0);
+					outBuff = newBuff;
+				}
+			}
+			
+			outBuff.write(xref, xStart);
 		}
 	}
 	catch (e)
@@ -603,7 +715,7 @@ async function handleRequest(req, res)
 					
 					if (req.body.embedXml == "1")
 					{
-						data = writePdfWithSubject(data, xml);
+						data = writePdfWithText(data, xml);
 					}
 					
 					if (base64encoded)
