@@ -200,7 +200,6 @@ function writePdfWithText(origBuff, text)
 	var data = '\n/Subject (' + encodeURIComponent(text).replace(/\(/g, "\\(").replace(/\)/g, "\\)") + ')';
 	var outBuff = Buffer.allocUnsafe(origBuff.length);
 	var xrefCheck = '\nxref\n';
-	var xrefChecked = 0;
 	var xref = '';
 	var checked = 0;
 	var pStart = 0;
