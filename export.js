@@ -575,7 +575,7 @@ async function handleRequest(req, res)
 				}, 30000);
 				
 				const page = await browser.newPage();
-				await page.goto('https://www.draw.io/export3.html', {waitUntil: 'networkidle0'});
+				await page.goto((process.env.DRAWIO_SERVER_URL || 'https://www.draw.io') + '/export3.html', {waitUntil: 'networkidle0'});
 
 				const result = await page.evaluate((body) => {
 						return render({
