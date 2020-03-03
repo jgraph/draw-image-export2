@@ -7,6 +7,8 @@ const puppeteer = require('puppeteer');
 const zlib = require('zlib');
 const fetch = require('node-fetch');
 const crc = require('crc');
+const hummus = require('hummus');
+const memoryStreams = require('memory-streams');
 
 const MAX_AREA = 15000 * 15000;
 const PNG_CHUNK_IDAT = 1229209940;
@@ -347,6 +349,39 @@ function writePdfWithText(origBuff, text)
 	return outBuff;
 }
 
+function mergePdfs(pdfFiles)
+{
+	//Pass throgh single files
+	if (pdfFiles.length == 1)
+	{
+		return pdfFiles[0];
+	}
+
+	//We need to process the output, so we need to return a stream
+	var outStream = new memoryStreams.WritableStream();
+
+	try 
+	{
+		var pdfWriter = hummus.createWriter(new hummus.PDFStreamForResponse(outStream));
+		
+		for (var i = 0; i < pdfFiles.length; i++)
+		{
+			pdfWriter.appendPDFPagesFromPDF(new hummus.PDFRStreamForBuffer(pdfFiles[i]));
+		}
+
+		pdfWriter.end();
+		var newBuffer = outStream.toBuffer();
+        outStream.end();
+
+        return newBuffer;
+    }
+	catch(e)
+	{
+		outStream.end();
+        throw new Error('Error during PDF combination: ' + e.message);
+    }
+}
+
 app.post('/', handleRequest);
 app.get('/', handleRequest);
 
@@ -576,8 +611,10 @@ async function handleRequest(req, res)
 				
 				const page = await browser.newPage();
 				await page.goto((process.env.DRAWIO_SERVER_URL || 'https://www.draw.io') + '/export3.html', {waitUntil: 'networkidle0'});
-
-				const result = await page.evaluate((body) => {
+				
+				async function rederPage(pageIndex)
+				{
+					await page.evaluate((body, pageIndex) => {
 						return render({
 							xml: body.xml,
 							format: body.format,
@@ -585,57 +622,62 @@ async function handleRequest(req, res)
 							h: body.h,
 							border: body.border || 0,
 							bg: body.bg,
-							"from": body["from"],
-							to: body.to,
+							from: pageIndex,
+							to: pageIndex,
 							pageId: body.pageId,
-							allPages: body.allPages,
 							scale: body.scale || 1,
 							extras: body.extras
 						});
-					}, req.body);
+					}, req.body, pageIndex);
 
-				//default timeout is 30000 (30 sec)
-				await page.waitForSelector('#LoadingComplete');
-				
-				var bounds = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('bounds'));
-				var pageId = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('page-id'));
-				var scale  = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('scale'));
-				var pdfOptions = {format: 'A4'};
-
-				if (bounds != null)
-				{
-					bounds = JSON.parse(bounds);
-
-					var isPdf = req.body.format == 'pdf';
-
-					//Chrome generates Pdf files larger than requested pixels size and requires scaling
-					//For images, the fixing scale shows scrollbars
-					var fixingScale = isPdf? 0.959 : 1;
-
-					var w = Math.ceil(Math.ceil(bounds.width + bounds.x) * fixingScale);
+					//default timeout is 30000 (30 sec)
+					await page.waitForSelector('#LoadingComplete');
 					
-					// +0.1 fixes cases where adding 1px below is not enough
-					// Increase this if more cropped PDFs have extra empty pages
-					var h = Math.ceil(Math.ceil(bounds.height + bounds.y) * fixingScale + (isPdf? 0.1 : 0));
+					var bounds = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('bounds'));
+					var pageId = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('page-id'));
+					var scale  = await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('scale'));
+					var pageCount  = parseInt(await page.mainFrame().$eval('#LoadingComplete', div => div.getAttribute('pageCount')));
+					var pdfOptions = {format: 'A4'};
+					
+					if (bounds != null)
+					{
+						bounds = JSON.parse(bounds);
 
-					page.setViewport({width: w, height: h});
+						var isPdf = req.body.format == 'pdf';
 
-					pdfOptions = {
-						printBackground: true,
-						width: w + 'px',
-						height: (h + 1) + 'px', //the extra pixel to prevent adding an extra empty page
-						margin: {top: '0px', bottom: '0px', left: '0px', right: '0px'}
+						//Chrome generates Pdf files larger than requested pixels size and requires scaling
+						//For images, the fixing scale shows scrollbars
+						var fixingScale = isPdf? 0.959 : 1;
+
+						var w = Math.ceil(Math.ceil(bounds.width + bounds.x) * fixingScale);
+						
+						// +0.1 fixes cases where adding 1px below is not enough
+						// Increase this if more cropped PDFs have extra empty pages
+						var h = Math.ceil(Math.ceil(bounds.height + bounds.y) * fixingScale + (isPdf? 0.1 : 0));
+
+						page.setViewport({width: w, height: h});
+
+						pdfOptions = {
+							printBackground: true,
+							width: w + 'px',
+							height: (h + 1) + 'px', //the extra pixel to prevent adding an extra empty page
+							margin: {top: '0px', bottom: '0px', left: '0px', right: '0px'}
+						}
 					}
-				}	  
+					
+					return {pdfOptions: pdfOptions, pageId: pageId, scale: scale, pageCount: pageCount};
+				}
 
 				// Cross-origin access should be allowed to now
 				res.header("Access-Control-Allow-Origin", "*");
 				
-				//req.body.filename = req.body.filename || ("export." + req.body.format);
 				var base64encoded = req.body.base64 == "1";
 				
 				if (req.body.format == 'png' || req.body.format == 'jpg' || req.body.format == 'jpeg')
 				{
+					var info = await rederPage(req.body.from || 0);
+					var pageId = info.pageId, scale = info.scale;
+
 					var data = await page.screenshot({
 						omitBackground: req.body.format == 'png' && (req.body.bg == null || req.body.bg == 'none'),	
 						type: req.body.format == 'jpg' ? 'jpeg' : req.body.format,
@@ -704,7 +746,18 @@ async function handleRequest(req, res)
 				}
 				else if (req.body.format == 'pdf')
 				{
-					var data = await page.pdf(pdfOptions);
+					var from = req.body.allPages? 0 : (req.body.from || 0);
+					var to = req.body.allPages? 1000000 : (req.body.to || 1000000); //The 'to' will be corrected later
+					var pdfs = [];
+
+					for (var i = from; i < to; i++)
+					{
+						var info = await rederPage(i);
+						to = to > info.pageCount? info.pageCount : to;
+						pdfs.push(await page.pdf(info.pdfOptions));
+					}
+
+					var data = mergePdfs(pdfs);
 
 					if (req.body.filename != null)
 					{
