@@ -746,8 +746,8 @@ async function handleRequest(req, res)
 				}
 				else if (req.body.format == 'pdf')
 				{
-					var from = req.body.allPages? 0 : (req.body.from || 0);
-					var to = req.body.allPages? 1000000 : (req.body.to || 1000000); //The 'to' will be corrected later
+					var from = req.body.allPages? 0 : parseInt(req.body.from || 0);
+					var to = req.body.allPages? 1000 : parseInt(req.body.to || 1000) + 1; //The 'to' will be corrected later
 					var pdfs = [];
 
 					for (var i = from; i < to; i++)
