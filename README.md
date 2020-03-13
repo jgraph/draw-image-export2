@@ -10,6 +10,7 @@ The 2018 server-side PNG/PDF export implementation using Node, Puppeteer and Chr
 * su chrome
 * cd ~/draw-image-export2
 * git pull
+* npm install
 * forever restartall
 
 ## Usage
