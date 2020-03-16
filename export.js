@@ -215,7 +215,7 @@ function mergePdfs(pdfFiles, xml)
 		if (xml != null)
 		{	
 			// Uses Subject as it is not used
-			infoDictionary.subject = xml;
+			infoDictionary.subject = encodeURIComponent(xml).replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 		}
 
 		for (var i = 0; i < pdfFiles.length; i++)
