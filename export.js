@@ -519,7 +519,7 @@ async function handleRequest(req, res)
 						}
 					}
 					
-					return {pdfOptions: pdfOptions, pageId: pageId, scale: scale, pageCount: pageCount};
+					return {pdfOptions: pdfOptions, pageId: pageId, scale: scale, pageCount: pageCount, w: w, h: h};
 				}
 
 				// Cross-origin access should be allowed to now
@@ -530,7 +530,7 @@ async function handleRequest(req, res)
 				if (req.body.format == 'png' || req.body.format == 'jpg' || req.body.format == 'jpeg')
 				{
 					var info = await rederPage(req.body.from || 0);
-					var pageId = info.pageId, scale = info.scale;
+					var pageId = info.pageId, scale = info.scale, h = info.h, w = info.w;
 
 					var data = await page.screenshot({
 						omitBackground: req.body.format == 'png' && (req.body.bg == null || req.body.bg == 'none'),	
@@ -602,11 +602,13 @@ async function handleRequest(req, res)
 				{
 					var from = req.body.allPages? 0 : parseInt(req.body.from || 0);
 					var to = req.body.allPages? 1000 : parseInt(req.body.to || 1000) + 1; //The 'to' will be corrected later
+					var pageId;
 					var pdfs = [];
 
 					for (var i = from; i < to; i++)
 					{
 						var info = await rederPage(i);
+						pageId = info.pageId;
 						to = to > info.pageCount? info.pageCount : to;
 						pdfs.push(await page.pdf(info.pdfOptions));
 					}
