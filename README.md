@@ -1,11 +1,11 @@
 # draw-image-export2
 The current server-side PNG/PDF export implementation using Node, Puppeteer and Chrome headless
 
-## Running the service
+## Running the service (this is your instructions, not the next section)
 * npm install
 * npm start
 
-## Updating internal draw.io versions
+## Updating internal draw.io versions (internal only)
 
 * su chrome
 * cd ~/draw-image-export2
