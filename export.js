@@ -655,6 +655,11 @@ async function handleRequest(req, res)
 						var info = await rederPage(i);
 						pageId = info.pageId;
 						to = to > info.pageCount? info.pageCount : to;
+						await page.emulateMedia('screen');
+						await page._emulationManager._client.send(
+							'Emulation.setDefaultBackgroundColorOverride',
+							{ color: { r: 0, g: 0, b: 0, a: 0 } }
+						);
 						pdfs.push(await page.pdf(info.pdfOptions));
 					}
 
