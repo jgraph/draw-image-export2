@@ -281,8 +281,8 @@ function mergePdfs(pdfFiles, xml)
     }
 }
 
-app.post('/', handleRequest);
-app.get('/', handleRequest);
+app.post('*', handleRequest);
+app.get('*', handleRequest);
 
 async function handleRequest(req, res) 
 {
