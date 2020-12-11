@@ -9,6 +9,8 @@ const fetch = require('node-fetch');
 const crc = require('crc');
 const hummus = require('hummus');
 const memoryStreams = require('memory-streams');
+const fs = require('fs');
+const path = require('path');
 
 const MAX_AREA = 15000 * 15000;
 const PNG_CHUNK_IDAT = 1229209940;
@@ -508,8 +510,37 @@ async function handleRequest(req, res)
 					browser.close();
 				}, 30000);
 				
+				//Check if we have a cached version of export3.html
+				var cacheDir = __dirname + '/cachedRenderer/';
+
+				if (!fs.existsSync(cacheDir + 'export3.html'))
+				{
+					async function cacheFile(url, localPath)
+					{
+						var targetDir = path.dirname(localPath);
+
+						if (!fs.existsSync(targetDir))
+						{
+							fs.mkdirSync(targetDir, { recursive: true });
+						}
+						
+						var urlRes = await fetch(url);
+						var content = await urlRes.text();
+						fs.writeFileSync(localPath, content);
+					};
+
+					var urlPrefix = (process.env.DRAWIO_SERVER_URL || 'https://viewer.diagrams.net') + '/';
+					var filesToCache = ['export3.html', 'export-fonts.css', 'js/app.min.js', 'mxgraph/css/common.css'];
+
+					for (var f = 0; f < filesToCache.length; f++)
+					{
+						var file = filesToCache[f];
+						await cacheFile(urlPrefix + file, cacheDir + file);
+					};
+				}
+
 				const page = await browser.newPage();
-				await page.goto((process.env.DRAWIO_SERVER_URL || 'https://viewer.diagrams.net') + '/export3.html', {waitUntil: 'networkidle0'});
+				await page.goto('file://' + cacheDir + 'export3.html', {waitUntil: 'networkidle0'});
 				
 				async function rederPage(pageIndex)
 				{
