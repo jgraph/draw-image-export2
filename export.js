@@ -7,8 +7,7 @@ const puppeteer = require('puppeteer');
 const zlib = require('zlib');
 const fetch = require('node-fetch');
 const crc = require('crc');
-const hummus = require('hummus');
-const memoryStreams = require('memory-streams');
+const PDFDocument = require('pdf-lib').PDFDocument;
 
 const MAX_AREA = 15000 * 15000;
 const PNG_CHUNK_IDAT = 1229209940;
@@ -194,52 +193,7 @@ function padNumber(n, width, z)
 	return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
 
-function appendPDFPageFromPDFWithAnnotations(pdfWriter, sourcePDF) 
-{
-    var cpyCxt = pdfWriter.createPDFCopyingContext(sourcePDF);
-    var cpyCxtParser = cpyCxt.getSourceDocumentParser();
-    
-    // for each page
-	for(var i = 0; i < cpyCxtParser.getPagesCount(); ++i) 
-	{
-        // grab page dictionary
-        var pageDictionary = cpyCxtParser.parsePageDictionary(i);
-		
-		if(!pageDictionary.exists('Annots')) 
-		{
-            // no annotation. append as is
-            cpyCxt.appendPDFPageFromPDF(i);            
-        }
-		else 
-		{
-            // this var here will save any reffed objects from the copied annotations object.
-            // they will be written after the page copy writing as to not to disturb the
-            // page object writing itself.
-            var reffedObjects;
-
-			pdfWriter.getEvents().once('OnPageWrite', function(params) 
-			{
-                // using the page write event, write the new annotations. just copy the object
-                // as is, saving any referenced objects for future writes
-                params.pageDictionaryContext.writeKey('Annots');
-                reffedObjects = cpyCxt.copyDirectObjectWithDeepCopy(pageDictionary.queryObject('Annots'))
-            })   
-
-            // write page. this will trigger the event  
-            cpyCxt.appendPDFPageFromPDF(i);
-            
-            // now write the reffed object (should be populated cause onPageWrite was written)
-            // note that some or all annotations may be embedded, in which case this array
-            // wont hold all annotation objects
-			if(reffedObjects && reffedObjects.length > 0)
-			{
-				cpyCxt.copyNewObjectsForDirectObject(reffedObjects)
-			}
-        }
-    }
-}
-
-function mergePdfs(pdfFiles, xml)
+async function mergePdfs(pdfFiles, xml)
 {
 	//Pass throgh single files
 	if (pdfFiles.length == 1 && xml == null)
@@ -247,36 +201,32 @@ function mergePdfs(pdfFiles, xml)
 		return pdfFiles[0];
 	}
 
-	//We need to process the output, so we need to return a stream
-	var outStream = new memoryStreams.WritableStream();
-
 	try 
 	{
-		var pdfWriter = hummus.createWriter(new hummus.PDFStreamForResponse(outStream));
-
-		var infoDictionary = pdfWriter.getDocumentContext().getInfoDictionary();
-		infoDictionary.creator = 'diagrams.net';
+		const pdfDoc = await PDFDocument.create();
+		pdfDoc.setCreator('diagrams.net');
 
 		if (xml != null)
 		{	
-			// Uses Subject as it is not used
-			infoDictionary.subject = encodeURIComponent(xml).replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+			//Embed diagram XML as file attachment
+			await pdfDoc.attach(Buffer.from(xml).toString('base64'), 'diagram.xml', {
+				mimeType: 'application/vnd.jgraph.mxfile',
+				description: 'Diagram Content'
+			  });
 		}
 
 		for (var i = 0; i < pdfFiles.length; i++)
 		{
-			appendPDFPageFromPDFWithAnnotations(pdfWriter, new hummus.PDFRStreamForBuffer(pdfFiles[i]))
+			const pdfFile = await PDFDocument.load(pdfFiles[i].buffer);
+			const pages = await pdfDoc.copyPages(pdfFile, pdfFile.getPageIndices());
+			pages.forEach(p => pdfDoc.addPage(p));
 		}
 
-		pdfWriter.end();
-		var newBuffer = outStream.toBuffer();
-        outStream.end();
-
-        return newBuffer;
+		const pdfBytes = await pdfDoc.save();
+        return Buffer.from(pdfBytes);
     }
 	catch(e)
 	{
-		outStream.end();
         throw new Error('Error during PDF combination: ' + e.message);
     }
 }
@@ -663,7 +613,7 @@ async function handleRequest(req, res)
 						pdfs.push(await page.pdf(info.pdfOptions));
 					}
 
-					var data = mergePdfs(pdfs, req.body.embedXml == '1' ? xml : null);
+					var data = await mergePdfs(pdfs, req.body.embedXml == '1' ? xml : null);
 
 					if (req.body.filename != null)
 					{
