@@ -227,7 +227,15 @@ async function mergePdfs(pdfFiles, xml)
     }
 	catch(e)
 	{
-        throw new Error('Error during PDF combination: ' + e.message);
+		//Sometimes embedding xml cause errors, so try again without embedding
+		if (xml != null)
+		{
+			return mergePdfs(pdfFiles, null);
+		}
+
+		let errMsg = 'Error during PDF combination: ' + e.message;
+		logger.error(errMsg);
+        throw new Error(errMsg);
     }
 }
 
@@ -703,8 +711,6 @@ async function handleRequest(req, res)
 		{
 			res.status(400).end("BAD REQUEST");
 		}
-		//INTERNAL_SERVER_ERROR
-		res.status(500).end("Unknown error!");
 	  }
   }
   catch(e)
