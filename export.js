@@ -469,7 +469,7 @@ async function handleRequest(req, res)
 				const page = await browser.newPage();
 				await page.goto((process.env.DRAWIO_SERVER_URL || 'https://viewer.diagrams.net') + '/export3.html', {waitUntil: 'networkidle0'});
 				
-				async function rederPage(pageIndex)
+				async function renderPage(pageIndex)
 				{
 					await page.evaluate((body, pageIndex) => {
 						return render({
@@ -532,7 +532,7 @@ async function handleRequest(req, res)
 				
 				if (req.body.format == 'png' || req.body.format == 'jpg' || req.body.format == 'jpeg')
 				{
-					var info = await rederPage(req.body.from || 0);
+					var info = await renderPage(req.body.from || 0);
 					var pageId = info.pageId, scale = info.scale, h = info.h, w = info.w;
 
 					var data = await page.screenshot({
@@ -610,7 +610,7 @@ async function handleRequest(req, res)
 
 					for (var i = from; i < to; i++)
 					{
-						var info = await rederPage(i);
+						var info = await renderPage(i);
 						pageId = info.pageId;
 						to = to > info.pageCount? info.pageCount : to;
 						await page.emulateMedia('screen');
