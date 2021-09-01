@@ -5,6 +5,9 @@ The current server-side PNG/PDF export implementation using Node, Puppeteer and 
 * npm install
 * npm start
 
+Then add export=http://localhost:8000 (hostname and port as needed) as an URL parameter to use that service
+for development and testing.
+
 ## Updating internal draw.io versions (internal only)
 
 * su chrome
