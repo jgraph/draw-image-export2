@@ -14,15 +14,14 @@
     "nodemon": "^2.0.7"
   },
   "dependencies": {
-    "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "crc": "^3.8.0",
     "express": "^4.16.4",
+    "jsdom": "^17.0.0",
     "morgan": "^1.9.1",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.0.0",
     "pdf-lib": "^1.16.0",
-    "puppeteer": "^1.15.0",
-    "winston": "^3.2.1",
-    "xmldom": "^0.6.0"
+    "puppeteer": "^10.4.0",
+    "winston": "^3.2.1"
   }
 }

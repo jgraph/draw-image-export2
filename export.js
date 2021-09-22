@@ -1,25 +1,24 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const winston = require('winston');
 const compression = require('compression');
 const puppeteer = require('puppeteer');
 const zlib = require('zlib');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const crc = require('crc');
 const PDFDocument = require('pdf-lib').PDFDocument;
 
 const MAX_AREA = 15000 * 15000;
 const PNG_CHUNK_IDAT = 1229209940;
-var DOMParser = require('xmldom').DOMParser;
+const { JSDOM } = require("jsdom");
 
 const PORT = process.env.PORT || 8000
 
 const app = express();
 
 //Max request size is 10 MB
-app.use(bodyParser.urlencoded({ extended: false, limit: '10mb'}));
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb'}));
+app.use(express.json({ limit: '10mb' }));
 
 app.use(compression({
     threshold: 10,
@@ -185,14 +184,6 @@ function writePngWithText(origBuff, key, text, compressed, base64encoded)
 	}
 }
 
-function padNumber(n, width, z)
-{
-	z = z || '0';
-	n = n + '';
-	
-	return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
-}
-
 async function mergePdfs(pdfFiles, xml)
 {
 	//Pass throgh single files
@@ -265,19 +256,9 @@ async function handleRequest(req, res)
 
 		try
 		{
-			//Handles buffer constructor deprecation
-			if (Buffer.from && Buffer.from !== Uint8Array.from)
-			{
-				html = decodeURIComponent(
-					zlib.inflateRawSync(
-							Buffer.from(decodeURIComponent(html), 'base64')).toString());
-			}
-			else
-			{
-				html = decodeURIComponent(
-					zlib.inflateRawSync(
-							new Buffer(decodeURIComponent(html), 'base64')).toString());
-			}
+			html = decodeURIComponent(
+				zlib.inflateRawSync(
+						Buffer.from(decodeURIComponent(html), 'base64')).toString());
 			
 			browser = await puppeteer.launch({
 				headless: true,
@@ -335,7 +316,7 @@ async function handleRequest(req, res)
 			try
 			{
 				xml = zlib.inflateRawSync(
-						new Buffer(decodeURIComponent(req.body.xmldata), 'base64')).toString();
+						Buffer.from(decodeURIComponent(req.body.xmldata), 'base64')).toString();
 			}
 			catch (e)
 			{
@@ -359,7 +340,7 @@ async function handleRequest(req, res)
 		{
 			try
 			{
-				var doc = new DOMParser().parseFromString(xml);
+				var doc = new JSDOM(xml).window.document;
 				var divs = doc.documentElement
 						.getElementsByTagName("div");
 
@@ -389,7 +370,7 @@ async function handleRequest(req, res)
 
 								if (tmp != null)
 								{
-									tmp = zlib.inflateRawSync(new Buffer(tmp, 'base64')).toString();
+									tmp = zlib.inflateRawSync(Buffer.from(tmp, 'base64')).toString();
 									
 									if (tmp != null && tmp.length > 0)
 									{
@@ -413,7 +394,7 @@ async function handleRequest(req, res)
 		{//TODO not tested!
 			try
 			{
-				var doc = new DOMParser().parseFromString(xml);
+				var doc = new JSDOM(xml).window.document;
 
 				if (doc != null && doc.documentElement != null && doc
 						.documentElement.nodeName == "svg")
@@ -615,7 +596,7 @@ async function handleRequest(req, res)
 						var info = await renderPage(i);
 						pageId = info.pageId;
 						to = to > info.pageCount? info.pageCount : to;
-						await page.emulateMedia('screen');
+						await page.emulateMediaType('screen');
 						await page._emulationManager._client.send(
 							'Emulation.setDefaultBackgroundColorOverride',
 							{ color: { r: 0, g: 0, b: 0, a: 0 } }
