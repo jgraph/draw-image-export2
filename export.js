@@ -196,7 +196,8 @@ const withTempDir = async (fn) => {
 	try {
 		return await fn(dir);
 	}finally {
-		fs.rm(dir, {recursive: true});
+		//fs.rm is not available on old node versions
+		(fs.rm || fs.rmdir)(dir, {recursive: true});
 	}
 };
 
@@ -227,11 +228,15 @@ async function pdfToSvg(pdfFile, xml, transparent)
 		await fs.writeFile(tmpFile + '.pdf', pdfFile);
 		
 		await execFile(process.env.INKSCAPE_PATH || 'inkscape', 
-			[tmpFile + '.pdf',
+		[
+			tmpFile + '.pdf',
 			'--pdf-poppler',
 			'--export-text-to-path', 
-			'--export-plain-svg=' + tmpFile + '.svg']); //TODO --export-plain-svg= is deprecated, cannot find the alternative yet
-	
+			'--export-plain-svg',
+			'--export-filename',
+			tmpFile + '.svg'
+		]);
+
 		let svg = await fs.readFile(tmpFile + '.svg', 'utf8');
 
 		if (xml)
