@@ -256,7 +256,8 @@ async function pdfToSvg(pdfFile, xml, transparent)
 		if (transparent)
 		{
 			//TODO Check that the first element is always the background, also, it has the same style
-			svg = svg.replace('style="fill:#ffffff;fill-opacity:1;stroke:none"', 'style="fill:#ffffff;fill-opacity:0;stroke:none"');
+			//Note: This depends on Inkscape's version
+			svg = svg.replace('style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"', 'style="fill:#ffffff;fill-opacity:0;fill-rule:nonzero;stroke:none"');
 		}
 		
 		return svg;
@@ -662,6 +663,30 @@ async function handleRequest(req, res)
 					var dt = Date.now() - t0;
 					
 					logger.info("Success " + reqStr + " dt=" + dt);
+				}
+				else if (process.env.DIRECT_SVG_EXPORT != '1' && req.body.format == 'svg')
+				{
+					const params = new URLSearchParams();
+
+					for (let param in req.body)
+					{
+						params.append(param, req.body[param]);
+					}					
+					
+					let options =  {method: 'POST', body: params};
+					let svgRes = await fetch(process.env.SVG_EXPORT_URL || 'http://localhost:8000', options);
+					
+					if (svgRes.ok)
+					{
+						res.header('Content-disposition', svgRes.headers.get('Content-disposition'));
+						res.header('Content-type', svgRes.headers.get('Content-type'));
+						res.header('Content-Length', svgRes.headers.get('Content-Length'));
+						res.end(await svgRes.text());
+					}
+					else
+					{
+						res.status(svgRes.status).end(await svgRes.text());
+					}
 				}
 				else if (req.body.format == 'pdf' || req.body.format == 'svg')
 				{
