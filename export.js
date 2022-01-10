@@ -13,6 +13,9 @@ const os = require("os");
 const path = require("path");
 const childProcess = require('child_process');
 
+//Force windows to do RR scheduling
+cluster.schedulingPolicy = cluster.SCHED_RR;
+
 if (cluster.isMaster) 
 {
     // Count the machine's CPUs
