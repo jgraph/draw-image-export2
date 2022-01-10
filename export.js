@@ -19,7 +19,7 @@ cluster.schedulingPolicy = cluster.SCHED_RR;
 if (cluster.isMaster) 
 {
     // Count the machine's CPUs
-    let cpuCount = os.cpus().length;
+    let cpuCount = process.env.WORKER_POOL_SIZE || os.cpus().length;
 
     // Create a worker for each CPU
     for (let i = 0; i < cpuCount; i++) 
