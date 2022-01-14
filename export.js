@@ -1,4 +1,3 @@
-const cluster = require('cluster');
 const express = require('express');
 const morgan = require('morgan');
 const winston = require('winston');
@@ -12,11 +11,18 @@ const fs = require("fs").promises;
 const os = require("os");
 const path = require("path");
 const childProcess = require('child_process');
+let cluster = false;
 
-//Force windows to do RR scheduling
-cluster.schedulingPolicy = cluster.SCHED_RR;
+const NO_CLUSTER = process.env.NO_CLUSTER === '1';
 
-if (cluster.isMaster) 
+if (!NO_CLUSTER) 
+{
+	cluster = require('cluster');
+	//Force windows to do RR scheduling
+	cluster.schedulingPolicy = cluster.SCHED_RR;
+}
+
+if (!NO_CLUSTER && cluster.isMaster) 
 {
     // Count the machine's CPUs
     let cpuCount = process.env.WORKER_POOL_SIZE || os.cpus().length;
@@ -31,8 +37,7 @@ if (cluster.isMaster)
 	cluster.on('exit', function (worker) 
 	{
 		// Replace the dead worker,
-		// we're not sentimental
-		console.log('Worker %d died :(', worker.id);
+		console.log('Worker %d died, restarting...', worker.id);
 		cluster.fork();
 	});
 }
@@ -740,7 +745,7 @@ else
 
 							var dt = Date.now() - t0;
 							
-							logger.info(cluster.worker.id + ": Success " + reqStr + " dt=" + dt);
+							logger.info("Success " + reqStr + " dt=" + dt);
 						}
 						else 
 						{
@@ -796,7 +801,7 @@ else
 							reqStr += ("xmlData=" + req.body.xmlData.length + " ");
 						}
 
-						logger.warn(cluster.worker.id + ": Handled exception: " + e.message
+						logger.warn("Handled exception: " + e.message
 								+ " req=" + reqStr, {stack: e.stack});
 						
 					}
@@ -817,6 +822,13 @@ else
 
 	app.listen(PORT, function () 
 	{
-		console.log(`draw.io export server worker ${cluster.worker.id} listening on port ${PORT}...`)
+		if (NO_CLUSTER)
+		{
+			console.log(`draw.io export server listening on port ${PORT}...`);
+		}
+		else
+		{
+			console.log(`draw.io export server worker ${cluster.worker.id} listening on port ${PORT}...`);
+		}
 	});
 }
