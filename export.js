@@ -612,7 +612,7 @@ else
 								pdfOptions = {
 									printBackground: true,
 									width: w + 'px',
-									height: (h + 1) + 'px', //the extra pixel to prevent adding an extra empty page
+									height: (h + 2) + 'px', //the extra 2 pixels to prevent adding an extra empty page
 									margin: {top: '0px', bottom: '0px', left: '0px', right: '0px'}
 								}
 							}
