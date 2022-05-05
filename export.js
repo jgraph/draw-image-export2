@@ -43,7 +43,7 @@ if (!NO_CLUSTER && cluster.isMaster)
 }
 else
 {
-	const MAX_AREA = 15000 * 15000;
+	const MAX_AREA = 20000 * 20000;
 	const PNG_CHUNK_IDAT = 1229209940;
 	const { JSDOM } = require("jsdom");
 
