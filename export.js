@@ -4,7 +4,7 @@ const winston = require('winston');
 const compression = require('compression');
 const puppeteer = require('puppeteer');
 const zlib = require('zlib');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+//const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const crc = require('crc');
 const PDFDocument = require('pdf-lib').PDFDocument;
 const fs = require("fs").promises;
@@ -353,7 +353,8 @@ else
 			Object.assign(req.body, req.params, req.query);
 			
 			// Checks for HTML export request
-			if (req.body.html)
+			// Removed until we secure it
+			/*if (req.body.html)
 			{
 				var html = req.body.html;
 
@@ -412,10 +413,12 @@ else
 					throw e;
 				}
 			}
-			else
+			else*/
 			{	
 				var xml;
-				if (req.body.url)
+
+				// Removed until we secure it. Remember to add back the fetch import
+				/*if (req.body.url)
 				{
 					var urlRes = await fetch(req.body.url);
 					xml = await urlRes.text();
@@ -423,7 +426,7 @@ else
 					if (req.body.format == null)
 						req.body.format = 'png';
 				}
-				else if (req.body.xmldata)
+				else*/ if (req.body.xmldata)
 				{
 					try
 					{
