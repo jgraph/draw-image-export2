@@ -614,6 +614,7 @@ else
 
 								pdfOptions = {
 									printBackground: true,
+									omitBackground: true,
 									width: w + 'px',
 									height: (h + 2) + 'px', //the extra 2 pixels to prevent adding an extra empty page
 									margin: {top: '0px', bottom: '0px', left: '0px', right: '0px'}
@@ -713,11 +714,6 @@ else
 								var info = await renderPage(i);
 								pageId = info.pageId;
 								to = to > info.pageCount? info.pageCount : to;
-								await page.emulateMediaType('screen');
-								await page._emulationManager._client.send(
-									'Emulation.setDefaultBackgroundColorOverride',
-									{ color: { r: 0, g: 0, b: 0, a: 0 } }
-								);
 								pdfs.push(await page.pdf(info.pdfOptions));
 							}
 
