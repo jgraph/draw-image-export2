@@ -11,17 +11,17 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.20"
   },
   "dependencies": {
     "compression": "^1.7.4",
-    "crc": "^4.1.0",
-    "express": "^4.17.2",
-    "jsdom": "^19.0.0",
+    "crc": "^4.3.1",
+    "express": "^4.18.2",
+    "jsdom": "^21.0.0",
     "morgan": "^1.9.1",
-    "node-fetch": "^3.0.0",
+    "node-fetch": "^3.3.0",
     "pdf-lib": "^1.17.1",
-    "puppeteer": "^13.1.2",
-    "winston": "^3.4.0"
+    "puppeteer": "^19.5.2",
+    "winston": "^3.8.2"
   }
 }
