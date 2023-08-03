@@ -307,7 +307,7 @@ else
 		try 
 		{
 			const pdfDoc = await PDFDocument.create();
-			pdfDoc.setCreator('diagrams.net');
+			pdfDoc.setCreator('draw.io');
 
 			if (xml != null)
 			{	
