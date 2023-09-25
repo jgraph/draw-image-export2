@@ -567,7 +567,8 @@ else
 						async function renderPage(pageIndex)
 						{
 							// LATER: Reuse same page (ie. reuse image- and font cache, reset state, viewport and remove LoadingComplete on each iteration)
-							await page.goto((process.env.DRAWIO_SERVER_URL || 'https://viewer.diagrams.net') + '/export3.html', {waitUntil: 'networkidle0'});
+							// Moving to DRAWIO_BASE_URL but keeping DRAWIO_SERVER_URL for backward compatibility
+							await page.goto((process.env.DRAWIO_BASE_URL || process.env.DRAWIO_SERVER_URL || 'https://viewer.diagrams.net') + '/export3.html', {waitUntil: 'networkidle0'});
 
 							await page.evaluate((body, pageIndex) => {
 								return render({
