@@ -374,7 +374,7 @@ else
 								Buffer.from(decodeURIComponent(html), 'base64')).toString());
 					
 					browser = await puppeteer.launch({
-						headless: 'new,
+						headless: 'new',
 						args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 					});
 					
