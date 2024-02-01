@@ -253,49 +253,6 @@ else
 		});
 	};
 
-	async function pdfToSvg(pdfFile, xml, transparent)
-	{
-		return await withTempFile(async (tmpFile) => 
-		{
-			await fs.writeFile(tmpFile + '.pdf', pdfFile);
-			
-			await execFile(process.env.INKSCAPE_PATH || 'inkscape', 
-			[
-				tmpFile + '.pdf',
-				'--pdf-poppler',
-				'--export-text-to-path', 
-				'--export-plain-svg',
-				'--export-filename',
-				tmpFile + '.svg'
-			]);
-
-			let svg = await fs.readFile(tmpFile + '.svg', 'utf8');
-
-			if (xml)
-			{
-				//TODO Is this string manubulation safe? DOM parsing is not easily done with JSDOM 
-				/*
-				const dom = new JSDOM(svg, {
-					contentType: 'text/xml'
-				});
-				
-				doc.documentElement.setAttribute('content', xml);
-				svg = dom.serialize();*/
-
-				svg = svg.replace(/<svg([^>]*)>/, '<svg $1 content="' + encodeURIComponent(xml.replace(/\n|\r/g, ' ')) + '">');
-			}
-
-			if (transparent)
-			{
-				//TODO Check that the first element is always the background, also, it has the same style
-				//Note: This depends on Inkscape's version
-				svg = svg.replace('style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"', 'style="fill:#ffffff;fill-opacity:0;fill-rule:nonzero;stroke:none"');
-			}
-			
-			return svg;
-		});
-	};
-
 	async function mergePdfs(pdfFiles, xml)
 	{
 		//Pass throgh single files
@@ -701,12 +658,10 @@ else
 							
 							logger.info("Success " + reqStr + " dt=" + dt);
 						}
-						else if (req.body.format == 'pdf' || req.body.format == 'svg')
+						else if (req.body.format == 'pdf')
 						{
-							var isSVG = req.body.format == 'svg';
 							var from = req.body.allPages? 0 : parseInt(req.body.from || 0);
-							var to = isSVG? from + 1: //SVG is for one page only
-									(req.body.allPages? 1000 : parseInt(req.body.to || 1000) + 1); //The 'to' will be corrected later
+							var to = req.body.allPages? 1000 : parseInt(req.body.to || 1000) + 1; //The 'to' will be corrected later
 							var pageId;
 							var pdfs = [];
 
@@ -718,9 +673,7 @@ else
 								pdfs.push(await page.pdf(info.pdfOptions));
 							}
 
-							var data = isSVG? await pdfToSvg(pdfs[0], req.body.embedXml == '1' ? xml : null, 
-																req.body.bg == null || req.body.bg == 'none') :
-											await mergePdfs(pdfs, req.body.embedXml == '1' ? xml : null);
+							var data = await mergePdfs(pdfs, req.body.embedXml == '1' ? xml : null);
 
 							if (req.body.filename != null)
 							{
@@ -733,7 +686,7 @@ else
 								data = data.toString('base64');
 							}
 							
-							res.header('Content-type', isSVG? 'image/svg+xml' : (base64encoded? 'text/plain' : 'application/pdf'));
+							res.header('Content-type', base64encoded? 'text/plain' : 'application/pdf');
 							res.header("Content-Length", data.length);
 							
 							if (pageId != null && pageId != 'undefined')
