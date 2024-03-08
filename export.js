@@ -331,7 +331,7 @@ else
 								Buffer.from(decodeURIComponent(html), 'base64')).toString());
 					
 					browser = await puppeteer.launch({
-						headless: 'new',
+						headless: 'chrome-headless-shell',
 						args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 					});
 					
@@ -509,7 +509,7 @@ else
 						var t0 = Date.now();
 						
 						browser = await puppeteer.launch({
-							headless: 'new',
+							headless: 'chrome-headless-shell',
 							args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 						});
 
