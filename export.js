@@ -372,7 +372,7 @@ else
 					browser = await puppeteer.launch({
 						headless: 'chrome-headless-shell',
 						args: minimal_args,
-						userDataDir: './puppeteer_user_data'
+						userDataDir: './puppeteer_user_data' + cluster.worker.id
 					});
 					
 					// Workaround for timeouts/zombies is to kill after 30 secs
@@ -551,7 +551,7 @@ else
 						browser = await puppeteer.launch({
 							headless: 'chrome-headless-shell',
 							args: minimal_args,
-							userDataDir: './puppeteer_user_data'
+							userDataDir: './puppeteer_user_data' + cluster.worker.id
 						});
 
 						// Workaround for timeouts/zombies is to kill after 30 secs
