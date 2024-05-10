@@ -457,8 +457,8 @@ else
 								.getElementsByTagName("div");
 
 						if (divs != null && divs.length > 0
-								&& "mxgraph" == (divs.item(0).attributes
-										.getNamedItem("class").nodeValue))
+							&& "mxgraph" == (divs.item(0).attributes
+								.getNamedItem("class").nodeValue))
 						{
 							if (divs.item(0).nodeType == 1)
 							{
@@ -566,6 +566,7 @@ else
 						{
 							// LATER: Reuse same page (ie. reuse image- and font cache, reset state, viewport and remove LoadingComplete on each iteration)
 							// Moving to DRAWIO_BASE_URL but keeping DRAWIO_SERVER_URL for backward compatibility
+							//await page.goto('https://test.draw.io/export3.html', {waitUntil: 'networkidle0'});
 							await page.goto((process.env.DRAWIO_BASE_URL || process.env.DRAWIO_SERVER_URL || 'https://viewer.diagrams.net') + '/export3.html', {waitUntil: 'networkidle0'});
 							
 							var arg = {
@@ -573,6 +574,9 @@ else
 								format: req.body.format,
 								w: req.body.w,
 								h: req.body.h,
+								fit: req.body.fit,
+								sheetsAcross: req.body.sheetsAcross,
+								sheetsDown: req.body.sheetsDown,
 								crop: req.body.crop,
 								border: req.body.border,
 								bg: req.body.bg,
