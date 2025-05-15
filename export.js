@@ -259,92 +259,14 @@ else
 		}
 	}
 
-	//From https://advancedweb.hu/secure-tempfiles-in-nodejs-without-dependencies/
-	const withTempFile = (fn) => withTempDir((dir) => fn(path.join(dir, "file")));
-
-	const withTempDir = async (fn) => {
-		const dir = await fs.mkdtemp(await fs.realpath(os.tmpdir()) + path.sep);
-		try {
-			return await fn(dir);
-		} finally {
-			//fs.rm is not available on old node versions
-			(fs.rm || fs.rmdir)(dir, {recursive: true});
-		}
-	};
-
-	function execFile(binPath, args)
-	{
-		return new Promise(function (resolve, reject) 
-		{
-			childProcess.execFile(binPath, args, {
-				timeout: 25000 //25 sec
-			}, (error, stdout, stderr) =>
-			{
-				if (error) 
-				{
-					reject(error);
-				}
-				else
-				{
-					resolve(stdout);
-				}
-			});
-		});
-	};
-
-	async function mergePdfs(pdfFiles, xml)
-	{
-		//Pass throgh single files
-		if (pdfFiles.length == 1 && xml == null)
-		{
-			return pdfFiles[0];
-		}
-
-		try 
-		{
-			const pdfDoc = await PDFDocument.create();
-			pdfDoc.setCreator('draw.io');
-
-			if (xml != null)
-			{	
-				//Embed diagram XML as file attachment
-				await pdfDoc.attach(Buffer.from(xml).toString('base64'), 'diagram.xml', {
-					mimeType: 'application/vnd.jgraph.mxfile',
-					description: 'Diagram Content'
-				});
-			}
-
-			for (var i = 0; i < pdfFiles.length; i++)
-			{
-				const pdfFile = await PDFDocument.load(pdfFiles[i].buffer);
-				const pages = await pdfDoc.copyPages(pdfFile, pdfFile.getPageIndices());
-				pages.forEach(p => pdfDoc.addPage(p));
-			}
-
-			const pdfBytes = await pdfDoc.save();
-			return Buffer.from(pdfBytes);
-		}
-		catch(e)
-		{
-			//Sometimes embedding xml cause errors, so try again without embedding
-			if (xml != null)
-			{
-				return mergePdfs(pdfFiles, null);
-			}
-
-			let errMsg = 'Error during PDF combination: ' + e.message;
-			logger.error(errMsg);
-			throw new Error(errMsg);
-		}
-	}
-
-	app.post('*', handleRequest);
-	app.get('*', handleRequest);
+	app.post('/{*splat}', handleRequest);
+	app.get('/{*splat}', handleRequest);
 
 	async function handleRequest(req, res) 
 	{
 		try
 		{
+			req.body = req.body || {};
 			//Merge all parameters into body such that get and post works the same	
 			Object.assign(req.body, req.params, req.query);
 			
