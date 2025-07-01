@@ -60,3 +60,6 @@ typings/
 # Eclipse project file
 .project
 package-lock.json
+
+# Puppeteer User Data
+puppeteer_user_data*/
