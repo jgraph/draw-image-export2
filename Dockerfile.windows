@@ -1,0 +1,29 @@
+FROM mcr.microsoft.com/windows/server:ltsc2022
+
+# Download and install Node.js
+RUN powershell -Command \
+  [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; \
+  Invoke-WebRequest -Uri 'https://nodejs.org/dist/v24.11.1/node-v24.11.1-x64.msi' -OutFile 'node-installer.msi'; \
+  Start-Process msiexec.exe -ArgumentList '/i', 'node-installer.msi', '/quiet', '/norestart' -NoNewWindow -Wait; \
+  Remove-Item 'node-installer.msi'
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+
+# Install npm dependencies (including Puppeteer)
+RUN npm install
+
+# Install Puppeteer browser using npx
+RUN npx puppeteer browsers install chrome --install-deps
+
+# Copy application file
+COPY export.js .
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["node", "export.js"]

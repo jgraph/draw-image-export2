@@ -8,6 +8,23 @@ The current server-side PNG/PDF export implementation using Node, Puppeteer and 
 Then add export=http://localhost:8000 (hostname and port as needed) as an URL parameter to use that service
 for development and testing.
 
+### Docker
+
+* Run `docker build -t draw-image-export .` to build the image
+* Run `docker run -it -rm -p 8000:8000 draw-image-export` to start the container and test locally.
+
+This will run the pupeteer container on Linux. However, because Linux is missing a lot of fonts, the rendered images may not look as expected. To run the container on Windows as a Windows container with better font support, use the `Dockerfile.windows` file:
+
+* Run `docker build -f Dockerfile.windows -t draw-image-export-windows .` to build the Windows image
+* Run `docker run -it -rm -p 8000:8000 c` to start the Windows container and test locally.
+
+To deploy to Azure App Service for Containers on Windows, follow these steps:
+
+1. Login to Azure with the Azure CLI: `az login`
+2. Login to the Azure Container Registry: `az acr login --name ${your_registry_name}`
+3. Build the image with `docker build -t ${your_registry_name}.azurecr.io/draw-image-export-windows -f Dockerfile.windows .`
+4. Push the Docker image to the Azure Container Registry: `docker push ${your_registry_name}.azurecr.io/draw-image-export-windows`
+
 ## Updating internal draw.io versions (internal only)
 
 * su chrome
