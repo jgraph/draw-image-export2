@@ -27,6 +27,12 @@ To deploy to Azure App Service for Containers on Windows, follow these steps:
 3. Build the image with `docker build -t ${your_registry_name}.azurecr.io/draw-image-export-windows -f Dockerfile.windows .`
 4. Push the Docker image to the Azure Container Registry: `docker push ${your_registry_name}.azurecr.io/draw-image-export-windows`
 
+> **If you do not have a Windows container setup, you can use the Azure Container Registry Tasks to build the image in the cloud.**
+
+1. Login to Azure with the Azure CLI: `az login`
+2. Login to the Azure Container Registry: `az acr login --name ${your_registry_name}`
+3. Run `az acr build -r ${your_registry_name} -t imageexport:latest -f Dockerfile.windows . --platform windows`
+
 ## Updating internal draw.io versions (internal only)
 
 - su chrome
