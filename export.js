@@ -260,6 +260,7 @@ else
 	}
 
 	app.post('/{*splat}', handleRequest);
+	app.get('/health', handleHealthRequest);
 	app.get('/{*splat}', handleRequest);
 
 	async function handleRequest(req, res) 
@@ -769,6 +770,10 @@ else
 			res.status(500).end("Unknown error");
 		}
 	};
+
+	async function handleHealthRequest(req, res) {
+		res.status(200).end("OK");
+	}
 
 	app.listen(PORT, function () 
 	{
