@@ -290,11 +290,15 @@ else
 					html = decodeURIComponent(
 						zlib.inflateRawSync(
 								Buffer.from(decodeURIComponent(html), 'base64')).toString());
-					
+								
+					const workerSuffix = (!NO_CLUSTER && cluster && cluster.worker)
+							? String(cluster.worker.id)
+							: '1';
+							
 					browser = await puppeteer.launch({
 						headless: 'chrome-headless-shell',
 						args: minimal_args,
-						userDataDir: './puppeteer_user_data' + cluster.worker.id
+						userDataDir: './puppeteer_user_data' + workerSuffix
 					});
 					
 					// Workaround for timeouts/zombies is to kill after 30 secs
